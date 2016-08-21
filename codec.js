@@ -29,6 +29,23 @@ var compose=function(r) {
 	+r.ch;      //ch
 	return res;
 }
+//faster than decompose
+var charOf=function(c){
+	return c%32;
+}
+var lineOf=function(c){
+	return Math.floor((c/32)%32);
+}
+var pageOf=function(c){
+	return Math.floor((c/4096)%2048);
+}
+var sideOf=function(c){
+	return Math.floor((c/1024)%4);
+}
+var volOf=function(c){
+	Math.floor((c/8388608)%128);
+}
+
 var unpack=function(pointer){
 	var r=decompose(pointer);
 	r.ch="0"+r.ch; r.ch=r.ch.substr(r.ch.length-2);
@@ -40,5 +57,35 @@ var unpack=function(pointer){
 	var q=r.vol+"p"+r.page+r.side+r.line+r.ch;
 	return q;
 }
+//cannot cross volumn
+var lineDistance=function(p1,p2){
+	return (pageOf(p2)*87+sideOf(p2)*29+lineOf(p2) )
+	- (pageOf(p1)*87+sideOf(p1)*29+lineOf(p1));
+}
 
-module.exports={pack,unpack,compose,decompose}
+var nextLine=function(pointer,advanceline){
+	var d=decompose(pointer);
+	advanceline=advanceline||1;
+
+	while (advanceline) {//naive...room to improve
+		if (d.line==29) {
+			if (d.side==2) {
+				d.side=0;
+				d.page++;
+			} else {
+				d.side++;
+			}
+			d.line=1;
+		} else {
+			d.line++;
+		}		
+		advanceline--;
+	}
+
+	return compose(d);
+}
+//A range =  delta<<32 + pointer
+//delta should not cross a juan , less than 16 bits
+
+module.exports={pack,unpack,compose,decompose,nextLine
+,charOf,lineOf,sideOf,pageOf,volOf,lineDistance}
